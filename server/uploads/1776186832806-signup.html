@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Join Neighborhood Watch</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        
+        <!-- LEFT PANEL: Community Benefits -->
+        <div class="side-panel left">
+            <h3>Community Benefits</h3>
+            <div class="benefit-item">
+                <i class="fas fa-comments"></i>
+                <div>
+                    <strong>Secure Communication</strong>
+                    <p>Encrypted chat communicantly.</p>
+                </div>
+            </div>
+            <div class="benefit-item">
+                <i class="fas fa-bell"></i>
+                <div>
+                    <strong>Emergency Alerts</strong>
+                    <p>Real-time sirens and alerts.</p>
+                </div>
+            </div>
+            <div class="benefit-item">
+                <i class="fas fa-tools"></i>
+                <div>
+                    <strong>Resource Sharing</strong>
+                    <p>Share tools with neighbors.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER: The Sign-Up Form -->
+        <div class="main-wrapper">
+            <div class="glass-card">
+                <div class="header">
+                    <h1>Create an Account</h1>
+                    <p>Join your neighbors to keep the community safe.</p>
+                </div>
+
+                <!-- Error Message Container (Hidden by default) -->
+                <div id="errorMessage" class="error-box" style="display: none;"></div>
+
+                <form id="signupForm" action="/register" method="POST">
+                    <div class="input-group">
+                        <label><i class="fas fa-user"></i> Full Name</label>
+                        <input type="text" name="fullname" placeholder="Enter name" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label><i class="fas fa-envelope"></i> Email Address</label>
+                        <input type="email" name="email" placeholder="Enter digital ID" required>
+                    </div>
+
+                    <!-- Password with Strength Meter -->
+                    <div class="input-group">
+                        <label><i class="fas fa-shield-alt"></i> Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" placeholder="Min 8 characters" required>
+                            <i class="fas fa-eye toggle-password" onclick="togglePassword('password')"></i>
+                        </div>
+                        <!-- Strength Meter UI -->
+                        <div class="strength-meter">
+                            <div id="strength-bar" class="bar"></div>
+                        </div>
+                        <p id="strength-text">Security: <span id="strength-label">Waiting...</span></p>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="input-group">
+                        <label><i class="fas fa-link"></i> Confirm Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat password" required>
+                            <i class="fas fa-eye toggle-password" onclick="togglePassword('confirm_password')"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="glow-button">Initiate Sign Up</button>
+                </form>
+            </div>
+
+            <div class="bottom-box">
+                <p>Already have an account? <a href="index.html">Sign in here.</a></p>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Status & Map -->
+<aside class="side-module right-module">
+    <header class="status-header">LOCAL GRID: <span class="status-optimal">OPTIMAL</span></header>
+    
+    <div class="map-card">
+        <!-- The scanning line and nodes -->
+        <div class="node n1 pulse"></div>
+        <div class="node n2"></div>
+        <div class="node n3"></div>
+        <div class="node n4"></div>
+        <div class="node n5 pulse"></div>
+    </div>
+
+    <div class="stats-box">
+        <div class="desc-item">
+            <strong>ACTIVE PATROLS:</strong>
+            <span>03 Units deployed</span>
+        </div>
+        <div class="desc-item">
+            <strong>SAFE ZONES:</strong>
+            <span>06 Sectors secured</span>
+        </div>
+    </div>
+</aside>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

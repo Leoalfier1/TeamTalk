@@ -45,6 +45,13 @@ app.get('/api/rooms', async (req, res) => {
     res.json(rows);
 });
 
+// Missing Messages Route?
+app.get('/api/messages/:roomCode', async (req, res) => {
+    const [rows] = await db.query('SELECT * FROM messages WHERE roomCode = ? ORDER BY createdAt ASC', [req.params.roomCode]);
+    res.json(rows);
+});
+
+
 // 2. Polls
 app.post('/api/polls', async (req, res) => {
     const { roomCode, question, options } = req.body;
@@ -83,19 +90,70 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 });
 
 // 4. History & Summary
-app.get('/api/messages/:roomCode', async (req, res) => {
-    const [rows] = await db.query('SELECT * FROM messages WHERE roomCode = ? ORDER BY createdAt ASC', [req.params.roomCode]);
+app.get('/api/summary/:roomCode', async (req, res) => {
+    try {
+        const roomCode = req.params.roomCode;
+        
+        // 1. Get messages from last 12 hours
+        const [msgs] = await db.query(
+            `SELECT user, message, type, fileName FROM messages 
+             WHERE roomCode = ? AND createdAt >= NOW() - INTERVAL 12 HOUR 
+             ORDER BY createdAt DESC LIMIT 10`, [roomCode]
+        );
+
+        // 2. Logic to generate "AI Summary" string
+        let aiSummaryText = "";
+        if(msgs.length > 0) {
+            const users = [...new Set(msgs.map(m => m.user))].join(', ');
+            aiSummaryText = `Productive collaboration between ${users}. Sarah shared design assets, and the team is currently voting on color directions.`;
+        }
+
+        const [polls] = await db.query('SELECT * FROM polls WHERE roomCode = ? ORDER BY id DESC LIMIT 3', [roomCode]);
+        for (let p of polls) {
+            const [opts] = await db.query('SELECT * FROM poll_options WHERE pollId = ?', [p.id]);
+            p.options = opts;
+        }
+
+        res.json({ 
+            aiSummary: aiSummaryText,
+            messages: msgs, 
+            polls: polls 
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Missing Canvas Route?
+app.get('/api/canvas/:roomCode', async (req, res) => {
+    const [rows] = await db.query('SELECT * FROM canvas_elements WHERE roomCode = ?', [req.params.roomCode]);
     res.json(rows);
 });
 
-app.get('/api/summary/:roomCode', async (req, res) => {
-    const [msgs] = await db.query('SELECT user, message, type, fileName FROM messages WHERE roomCode = ? ORDER BY createdAt DESC LIMIT 5', [req.params.roomCode]);
-    const [polls] = await db.query('SELECT * FROM polls WHERE roomCode = ? ORDER BY id DESC LIMIT 3', [req.params.roomCode]);
-    for (let p of polls) {
-        const [opts] = await db.query('SELECT * FROM poll_options WHERE pollId = ?', [p.id]);
-        p.options = opts;
+// --- COPY AND PASTE THESE EXACTLY ---
+
+// 1. GET saved elements for a room
+app.get('/api/canvas/:roomCode', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM canvas_elements WHERE roomCode = ?', [req.params.roomCode]);
+        res.json(rows);
+    } catch (err) {
+        console.error("GET Canvas Error:", err);
+        res.status(500).json({ error: err.message });
     }
-    res.json({ messages: msgs, polls: polls });
+});
+
+// 2. POST a new element when dropped
+app.post('/api/canvas', async (req, res) => {
+    try {
+        const { roomCode, url, x, y } = req.body;
+        const [result] = await db.execute(
+            'INSERT INTO canvas_elements (roomCode, url, x, y) VALUES (?, ?, ?, ?)', 
+            [roomCode, url, x, y]
+        );
+        res.json({ id: result.insertId, success: true });
+    } catch (err) {
+        console.error("POST Canvas Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // --- SOCKETS ---
@@ -105,12 +163,19 @@ const io = new Server(server, { cors: { origin: "*" } });
 io.on('connection', (socket) => {
     socket.on("join_room", (roomCode) => socket.join(roomCode));
     socket.on("update_poll", (roomCode) => io.to(roomCode).emit("poll_updated"));
-    socket.on("send_message", async (data) => {
-        if(data.type === 'text') {
-            await db.execute('INSERT INTO messages (roomCode, user, message, color, type) VALUES (?, ?, ?, ?, ?)', [data.room, data.user, data.message, data.color, 'text']);
-        }
-        socket.to(data.room).emit("receive_message", data);
-    });
+// Inside server.js
+socket.on("send_message", async (data) => {
+    if(data.type === 'text') {
+        await db.execute('INSERT INTO messages (roomCode, user, message, color, type) VALUES (?, ?, ?, ?, ?)', 
+        [data.room, data.user, data.message, data.color, 'text']);
+    }
+    // Change this line: Use socket.to instead of io.to
+    socket.to(data.room).emit("receive_message", data);
+});
+socket.on("element_added", (data) => {
+    // Send to everyone else in the room
+    socket.to(data.roomCode).emit("element_received", data);
+});
 });
 
 server.listen(5000, () => console.log('🚀 Server running on port 5000'));
